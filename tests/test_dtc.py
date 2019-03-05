@@ -3,7 +3,7 @@ import types
 from dataclasses import asdict
 from dataclasses import fields
 from dataclasses import is_dataclass
-from datetime import datetime
+from dtc import datetime
 
 import pytest
 

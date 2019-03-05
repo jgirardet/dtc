@@ -1,19 +1,32 @@
 import json
-from collections import namedtuple
 from dataclasses import field
 from dataclasses import fields
 from dataclasses import make_dataclass
 from dataclasses import MISSING
-from datetime import datetime
 from string import capwords
 from typing import List
 from typing import Union
+import sys
+from typing import Callable, Type
+
+# compat to 3.6 for from_iso_fromat
+if sys.version_info < (3, 7, 0):
+    from .compat import DatetimeCompat as datetime
+else:
+    from datetime import datetime
+
 
 ITEM = "_item"
 BASE_NAME = "Base"
 
-Custom = namedtuple(
-    "Custom", ["type", "fn", "args", "kwargs"], defaults=[None, None, [], {}]
+Custom = make_dataclass(
+    "Custom",
+    [
+        ["type", Type, field(default=None)],
+        ["fn", Callable, field(default=None)],
+        ["args", list, field(default_factory=list)],
+        ["kwargs", dict, field(default_factory=dict)],
+    ],
 )
 
 cache = {}

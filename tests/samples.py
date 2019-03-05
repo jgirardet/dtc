@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import  timezone, timedelta
+from dtc import datetime
 
 SAMPLE = b"""{
    "flooat": 12.564,
