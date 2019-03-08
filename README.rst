@@ -32,7 +32,7 @@ Dataclass instance lazy building from json
 	    True
 	    >>> JSON = b"""[{"flooat": 12.4, "boolean": true, "integer": 1}, {"flooat": 12.564, "boolean": true, "integer": 12},{"flooat": 1.4, "boolean": false, "integer": 0}]"""
 	    # parse from json object or list
-	    >>> dtc.from_json(JSON
+	    >>> dtc.from_json(JSON)
 		[Base(flooat=12.4, boolean=True, integer=1), Base(flooat=12.564, boolean=True, integer=12), Base(flooat=1.4, boolean=False, integer=0)]
 
 	
