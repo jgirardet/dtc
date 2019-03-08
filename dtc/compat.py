@@ -1,4 +1,6 @@
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 
 
 class DatetimeCompat(datetime):
@@ -127,3 +129,9 @@ def _parse_isoformat_time(tstr):
     time_comps.append(tzi)
 
     return time_comps
+
+
+
+import sys
+if sys.version_info < (3, 7, 0):
+    datetime = DatetimeCompat

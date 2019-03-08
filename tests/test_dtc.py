@@ -3,7 +3,6 @@ import types
 from dataclasses import asdict
 from dataclasses import fields
 from dataclasses import is_dataclass
-from dtc import datetime
 
 import pytest
 
@@ -20,19 +19,21 @@ from .samples import SAMPLE
 from .samples import SampleDataClass
 from .samples import Second_nested
 from .samples import SimpleList
-from .utils import cc
 from .utils import compare_class
 from .utils import compare_instance
 from .utils import custom_fn
 from .utils import get_field
 from dtc import create_dataclass
-from dtc import Custom
 from dtc import from_dict
 from dtc import from_json
 from dtc import from_list
 from dtc import populate
+from dtc.compat import datetime
+from dtc.utils import cache
+from dtc.utils import Custom
 
-pytestmark = pytest.mark.usefixtures("cache_clear")
+
+pytestmark = pytest.mark.usefixtures("cache_clear_function")
 
 
 class TestCreateDataclass:
@@ -134,11 +135,11 @@ class TestCreateDataclass:
             {"autodtc": Custom(datetime)}
         )
 
-    def test_write_cache(self, cache_clear):
+    def test_write_cache(self):
         data = {"text": "bla'"}
         dt = create_dataclass(data, "obj")
         dv = create_dataclass(data, "objo")
-        assert cache_clear == {"Obj": dt, "Objo": dv}
+        assert cache == {"Obj": dt, "Objo": dv}
 
     def test_get_cache_present_in_create_dataclass(self):
         data = {"Obj": {"text": "bla'"}}
@@ -169,11 +170,11 @@ class TestProcessList:
             {"autodtc": Custom(datetime)}
         )
 
-    def test_process_list_list_of_obj(self, cache_clear):
+    def test_process_list_list_of_obj(self):
         data = json.loads(JSON_LIST_INSIDE_OBJ)
         create_dataclass(data, "ref")
-        assert "Ref" in cache_clear
-        assert "Objecs_item" in cache_clear
+        assert "Ref" in cache
+        assert "Objecs_item" in cache
 
 
 class TestPopulate:
@@ -202,31 +203,33 @@ class TestPopulate:
         data = {"nested": {"rien": "bla"}}
         create_dataclass(data, name)
         populated = populate(data, name)
-        cached = cc("Obj")(nested=cc("Nested")(**data["nested"]))
+        cached = cache("Obj")(nested=cache("Nested")(**data["nested"]))
         assert cached == populated
 
-    def test_populate_nested_3_level(self, cache_clear):
+    def test_populate_nested_3_level(self):
         name = "obj"
         data = {"first_nested": {"second_nested": {"dtime": "1324-12-12"}}}
         create_dataclass(data, name)
         populated = populate(data, name)
-        cached = cc("Obj")(
-            first_nested=cc("First_nested")(
-                second_nested=cc("Second_nested")(**{"dtime": "1324-12-12"})
+        cached = cache("Obj")(
+            first_nested=cache("First_nested")(
+                second_nested=cache("Second_nested")(**{"dtime": "1324-12-12"})
             )
         )
         assert cached == populated
 
-    def test_populate_nested_3_level_custom(self, cache_clear):
+    def test_populate_nested_3_level_custom(self):
         name = "obj"
         data = {"first_nested": {"second_nested": {"dtime": "1324-12-12"}}}
         create_dataclass(
             data, name, custom={"first_nested.second_nested.dtime": {"type": datetime}}
         )
         populated = populate(data, name)
-        cached = cc("Obj")(
-            first_nested=cc("First_nested")(
-                second_nested=cc("Second_nested")(**{"dtime": datetime(1324, 12, 12)})
+        cached = cache("Obj")(
+            first_nested=cache("First_nested")(
+                second_nested=cache("Second_nested")(
+                    **{"dtime": datetime(1324, 12, 12)}
+                )
             )
         )
         assert cached == populated
@@ -243,17 +246,17 @@ class TestPopulate:
         )
         populated = populate(data, "Sample")
         # data["timedate"] = DTIME
-        cached = cc("Sample")(
+        cached = cache("Sample")(
             flooat=12.564,
             boolean=True,
             integer=12,
             array=[1, 2, 3, 4],
             string="bla",
-            obj=cc("Obj")(string="rinen"),
+            obj=cache("Obj")(string="rinen"),
             timedate=DTIME,
-            one_object=cc("One_object")(
-                first_nested=cc("First_nested")(
-                    second_nested=cc("Second_nested")(rien="rienstr")
+            one_object=cache("One_object")(
+                first_nested=cache("First_nested")(
+                    second_nested=cache("Second_nested")(rien="rienstr")
                 ),
                 texte="text",
                 datedate=datetime(1234, 12, 1),
@@ -271,12 +274,12 @@ class TestPopulate:
         to_dict["timedate"] = to_dict["timedate"].isoformat()
         assert to_dict == data
 
-    def test_list_of_obj(self, cache_clear):
+    def test_list_of_obj(self):
         data = json.loads(JSON_LIST_INSIDE_OBJ_CUSTOM)
         create_dataclass(data, "ref", custom={"objecs.timedate": {"type": datetime}})
         a = populate(data, "ref")
-        ref = cc("Ref")
-        objecs_item = cc("Objecs_item")
+        ref = cache("Ref")
+        objecs_item = cache("Objecs_item")
         compare_instance(a, ref(a=1, objecs=[objecs_item(timedate=DTIME)]))
 
     def test_custom_fn(self):
@@ -323,8 +326,8 @@ class TestPopulateFrom:
     def test_populate_list(self):
         data = json.loads(JSON_LIST)
         res = from_list(data, "ref")
-        Ref = cc("Ref")
-        Objece = cc("Objece")
+        Ref = cache("Ref")
+        Objece = cache("Objece")
         assert res == [
             Ref(
                 ref="refs/heads/master",
@@ -343,9 +346,11 @@ class TestPopulateFrom:
             ),
         ]
 
-    def test_populate_from_dict(self):
-        data = json.loads(SAMPLE)
-        res = from_dict(
+    @pytest.mark.parametrize(
+        "data, fn", [(json.loads(SAMPLE), from_dict), (SAMPLE, from_json)]
+    )
+    def test_populate_from_dict(self, data, fn):
+        res = fn(
             data,
             "Sample",
             custom={
@@ -353,17 +358,17 @@ class TestPopulateFrom:
                 "one_object.datedate": {"type": datetime},
             },
         )
-        assert res == cc("Sample")(
+        assert res == cache("Sample")(
             flooat=12.564,
             boolean=True,
             integer=12,
             array=[1, 2, 3, 4],
             string="bla",
-            obj=cc("Obj")(string="rinen"),
+            obj=cache("Obj")(string="rinen"),
             timedate=DTIME,
-            one_object=cc("One_object")(
-                first_nested=cc("First_nested")(
-                    second_nested=cc("Second_nested")(rien="rienstr")
+            one_object=cache("One_object")(
+                first_nested=cache("First_nested")(
+                    second_nested=cache("Second_nested")(rien="rienstr")
                 ),
                 texte="text",
                 datedate=datetime(1234, 12, 1),
@@ -382,14 +387,11 @@ class TestPopulateFrom:
 
 class TestCache:
     def test_instance(self):
-        from dtc import cache
-
-        assert cache == {}
         a = create_dataclass({}, "rien")
         assert cache == {"Rien": a}
 
 
-# TODO
-# REadme
-# frontend
-#
+# # TODO
+# # REadme
+# # frontend
+# #

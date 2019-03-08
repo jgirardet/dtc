@@ -59,4 +59,4 @@ clean-test: ## remove test and coverage artifacts
 
 
 style:
-	poetry run reorder-python-imports dtc/__init__.py tests/test_*
+	poetry run reorder-python-imports dtc/*.py tests/test_*

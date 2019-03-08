@@ -1,43 +1,19 @@
 import json
 import pathlib
 from dataclasses import asdict
-from datetime import datetime
 
 import pytest
 
+from dtc import cache
 from dtc import from_json
-
-pytestmark = pytest.mark.usefixtures("ch", "big", "big_c")
-
-
-@pytest.fixture(scope="class")
-def ch(request):
-    import dtc
-
-    dtc.cache = {}
-    yield dtc.cache
+from dtc.compat import datetime
 
 
-def parse_big(custom={}):
-    path = pathlib.Path(__file__).parent / "big.json"
-    return from_json(open(path).read(), "ref", custom=custom)
 
-
-@pytest.fixture(scope="class")
-def big(request):
-    return parse_big()
-
-
-@pytest.fixture(scope="class")
-def big_j(request):
-    path = pathlib.Path(__file__).parent / "big.json"
-    return json.loads(open(path).read())
-
-
-@pytest.mark.usefixtures('ch')
+@pytest.mark.usefixtures("cache_clear_class", "big")
 class TestBigStandard:
-    def test_cache(self, ch):
-        assert set(ch.keys()) == set("Ref Name Friends_item".split())
+    def test_cache(self):
+        assert set(cache.keys()) == set("Ref Name Friends_item".split())
 
     def test_len(self, big):
         len(big) == 5
@@ -59,20 +35,22 @@ class TestBigStandard:
         ]
 
 
-@pytest.fixture(scope="class")
-def big_c(request):
-    return parse_big(
-        custom={
-            "registered": {
-                "type": datetime,
-                "fn": datetime.strptime,
-                "args": ["%A, %B %d, %Y %I:%M %p"],
-            }
-        }
-    )
-
-@pytest.mark.usefixtures('ch', 'big_c')
 class TestBigCustom:
-    @pytest.mark.parametrize("param", "registered".split())
-    def test_datetime_fn(self, big_c, big_j, param, ch):
-        assert [getattr(x, param) for x in big_c] == [datetime.strptime(x[param], "%A, %B %d, %Y %I:%M %p")  for x in big_j]
+    def test_datetime_fn(self, cache_clear_function):
+        pp = pathlib.Path(__file__).parent / "big.json"
+        dt = from_json(
+            pp.read_text(),
+            "ref",
+            custom={
+                "registered": {
+                    "type": datetime,
+                    "fn": datetime.strptime,
+                    "args": ["%A, %B %d, %Y %I:%M %p"],
+                }
+            },
+        )
+        # assert False
+        assert [x.registered for x in dt] == [
+            datetime.strptime(y["registered"], "%A, %B %d, %Y %I:%M %p")
+            for y in json.loads(pp.read_text())
+        ]

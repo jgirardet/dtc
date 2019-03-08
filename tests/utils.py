@@ -92,7 +92,3 @@ def custom_fn(x, *args, **kwargs):
     return x + "".join(args) + "".join(kwargs)
 
 
-def cc(name):
-    import dtc
-
-    return dtc.cache[name]

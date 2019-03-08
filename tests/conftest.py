@@ -5,28 +5,17 @@ import pytest
 
 from dtc import from_json
 
-
-@pytest.fixture(scope="function")
-def cache(request):
-    import dtc
-
-    return dtc.cache
-
-@pytest.fixture(scope="function")
-def cache_clear(request):
-    import dtc
-
-    dtc.cache = {}
-
-    return  dtc.cache
+from dtc import cache
 
 
 @pytest.fixture(scope="class")
-def ch(request):
-    import dtc
+def cache_clear_class(request):
+    cache.clear()
 
-    dtc.cache = {}
-    yield dtc.cache
+
+@pytest.fixture(scope="function")
+def cache_clear_function(request):
+    cache.clear()
 
 
 def parse_big(custom={}):
