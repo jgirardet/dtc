@@ -20,7 +20,7 @@ install:
 script:
   # - make doc
   - make test
-  - make test-coverage
+  - make coverage
 
 # after_success:
 #   coveralls
